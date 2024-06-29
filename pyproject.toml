@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "nv9-websocket-backend"
+version = "0.1.0"
+description = ""
+authors = ["toxazhl <zhltoxa@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+aiomysql = "^0.2.0"
+websockets = "^12.0"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
