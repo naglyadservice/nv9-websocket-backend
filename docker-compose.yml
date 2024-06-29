@@ -14,3 +14,6 @@ services:
 
       ports:
          - "${WS_PORT}:${WS_PORT}"
+
+      extra_hosts:
+         - "host.docker.internal:host-gateway"
