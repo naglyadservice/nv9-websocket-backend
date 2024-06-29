@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Use environment variables for sensitive information
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "user": os.getenv("DB_USER", "fiscalization"),
-    "password": os.getenv("DB_PASSWORD", "osPM09An"),
-    "db": os.getenv("DB_NAME", "fiscalization"),
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "db": os.getenv("DB_NAME"),
     "autocommit": True,
 }
 
@@ -161,7 +161,7 @@ async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
 async def main():
     pool = await get_db_pool()
     server = await websockets.serve(
-        lambda ws, path: websocket_handler(ws, path, pool), "0.0.0.0", 4715
+        lambda ws, path: websocket_handler(ws, path, pool), os.getenv("WS_HOST"), os.getenv("WS_PORT")
     )
     logger.info("WebSocket server started on port 4715")
     await asyncio.gather(server.wait_closed(), system_messages_handler(pool))
