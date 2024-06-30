@@ -8,12 +8,23 @@ from datetime import datetime
 from typing import Any
 
 import aiomysql
+import sentry_sdk
 import websockets
 from websockets import WebSocketServerProtocol
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+sentry_sdk.init(
+    dsn="https://551d2197d8f86754723259d7f6150c57@o4505647719448576.ingest.us.sentry.io/4507520417529856",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
 # Use environment variables for sensitive information
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
@@ -90,7 +101,7 @@ async def system_messages_handler(pool):
                             await connections[factory_number].close()
 
         except Exception as e:
-            logger.error(
+            logger.exception(
                 f"Error in system_messages_handler: {e.__class__.__name__}: {e}"
             )
 
@@ -105,6 +116,7 @@ async def system_messages_handler(pool):
 
 
 async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
+    division_by_zero = 1 / 0
     try:
         async for message in websocket:
             try:
@@ -161,7 +173,9 @@ async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
 async def main():
     pool = await get_db_pool()
     server = await websockets.serve(
-        lambda ws, path: websocket_handler(ws, path, pool), os.getenv("WS_HOST"), os.getenv("WS_PORT")
+        lambda ws, path: websocket_handler(ws, path, pool),
+        os.getenv("WS_HOST"),
+        os.getenv("WS_PORT"),
     )
     logger.info("WebSocket server started on port 4715")
     await asyncio.gather(server.wait_closed(), system_messages_handler(pool))
