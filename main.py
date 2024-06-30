@@ -63,7 +63,7 @@ async def insert_fiskalization(pool, factory_number, sales_code, sales_cash):
 async def close_connection(factory_number, ws: WebSocketServerProtocol):
     await ws.close()
     logger.info(f"Connection closed for {factory_number}")
-    del connections[factory_number]
+    connections.pop(factory_number)
 
 
 async def system_messages_handler(pool):
