@@ -116,7 +116,6 @@ async def system_messages_handler(pool):
 
 
 async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
-    division_by_zero = 1 / 0
     try:
         async for message in websocket:
             try:
