@@ -12,7 +12,9 @@ import sentry_sdk
 import websockets
 from websockets import WebSocketServerProtocol
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 sentry_sdk.init(
