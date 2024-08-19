@@ -73,14 +73,23 @@ async def insert_fiskalization(pool, factory_number, sales_code, sales_cash):
             return False
 
 
-async def close_connection(factory_number, ws: WebSocketServerProtocol):
-    await ws.close()
-    logger.info(f"Connection closed for {factory_number}")
-    connections.pop(factory_number)
-
-
 async def system_messages_handler(pool):
     while True:
+        # Implement connection cleanup
+        to_close: list[WebSocketServerProtocol] = []
+        for fn, ws in connections.items():
+            if ws.closed:
+                connections.pop(fn)
+                to_close.append(ws)
+                logger.info(f"Removed closed connection for {fn}")
+
+        for ws in to_close:
+            try:
+                await ws.close()
+                logger.info(f"Closed connection for {ws}")
+            except Exception as e:
+                logger.error(f"Error closing connection: {e}")
+
         try:
             async with pool.acquire() as conn, conn.cursor() as cur:
                 await cur.execute(
@@ -97,22 +106,13 @@ async def system_messages_handler(pool):
                             logger.warning(
                                 f"Connection closed for {factory_number}. Removing from connections."
                             )
-                            await close_connection(
-                                factory_number, connections[factory_number]
-                            )
-                            await connections[factory_number].close()
+                            ws = connections.pop(factory_number)
+                            await ws.close()
 
         except Exception as e:
             logger.exception(
                 f"Error in system_messages_handler: {e.__class__.__name__}: {e}"
             )
-
-        # Implement connection cleanup
-        closed_connections = [fn for fn, ws in connections.items() if ws.closed]
-        for fn in closed_connections:
-            await close_connection(fn, connections[fn])
-            del connections[fn]
-            logger.info(f"Removed closed connection for {fn}")
 
         await asyncio.sleep(3)
 
