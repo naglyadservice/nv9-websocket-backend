@@ -76,19 +76,21 @@ async def insert_fiskalization(pool, factory_number, sales_code, sales_cash):
 async def system_messages_handler(pool):
     while True:
         # Implement connection cleanup
-        to_close: list[WebSocketServerProtocol] = []
+        to_close: list[tuple[WebSocketServerProtocol, Any]] = []
         for fn, ws in connections.copy().items():
             if ws.closed:
                 connections.pop(fn)
-                to_close.append(ws)
+                to_close.append((ws, fn))
                 logger.info(f"Removed closed connection for {fn}")
 
-        for ws in to_close:
+        for ws, fn in to_close:
             try:
                 await ws.close()
-                logger.info(f"Closed connection for {ws}")
+                logger.info(f"Closed connection for {fn}")
             except Exception as e:
-                logger.error(f"Error closing connection: {e}")
+                logger.error(
+                    f"Error closing connection for {fn}: {e.__class__.__name__}: {e}"
+                )
 
         try:
             async with pool.acquire() as conn, conn.cursor() as cur:
