@@ -77,7 +77,7 @@ async def system_messages_handler(pool):
     while True:
         # Implement connection cleanup
         to_close: list[WebSocketServerProtocol] = []
-        for fn, ws in connections.items():
+        for fn, ws in connections.copy().items():
             if ws.closed:
                 connections.pop(fn)
                 to_close.append(ws)
