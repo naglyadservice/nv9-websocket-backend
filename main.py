@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiomysql
@@ -63,6 +63,21 @@ async def check_token(token, factory_number):
 async def insert_fiskalization(pool, factory_number, sales_code, sales_cash):
     async with pool.acquire() as conn, conn.cursor() as cur:
         try:
+            await cur.execute(
+                """
+                SELECT 1
+                FROM `fiskalization_table`
+                WHERE factory_number = %s 
+                    AND sales_code = %s
+                    AND date >= %s
+                """,
+                (factory_number, sales_code, datetime.now(timezone.utc) - timedelta(minutes=1))
+            )
+            exists = await cur.fetchone()
+            if exists:
+                logger.info(f"Duplicate fiskalization for {factory_number} with code {sales_code}")
+                return True
+            
             await cur.execute(
                 "INSERT INTO `fiskalization_table` (factory_number, sales_code, sales_cashe) VALUES (%s, %s, %s)",
                 (factory_number, sales_code, sales_cash),
