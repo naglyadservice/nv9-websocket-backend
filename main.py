@@ -4,7 +4,8 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
+from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiomysql
@@ -60,12 +61,30 @@ async def check_token(token, factory_number):
     return token in tokens
 
 
-async def insert_fiskalization(pool, factory_number, sales_code, sales_cash):
+async def insert_fiskalization(pool, factory_number, sales_code, sales_cash, created_at):
     async with pool.acquire() as conn, conn.cursor() as cur:
         try:
             await cur.execute(
-                "INSERT INTO `fiskalization_table` (factory_number, sales_code, sales_cashe) VALUES (%s, %s, %s)",
-                (factory_number, sales_code, sales_cash),
+                """
+                SELECT 1
+                FROM `fiskalization_table`
+                WHERE factory_number = %s 
+                    AND sales_code = %s
+                    AND date >= %s
+                """,
+                (factory_number, sales_code, datetime.now(ZoneInfo("Europe/Kiev")) - timedelta(minutes=1))
+            )
+            exists = await cur.fetchone()
+            if exists:
+                logger.info(f"Duplicate fiskalization for {factory_number} with code {sales_code}")
+                return True
+            
+            await cur.execute(
+                """
+                INSERT INTO `fiskalization_table` (factory_number, sales_code, sales_cashe, date_msg)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (factory_number, sales_code, sales_cash, created_at),
             )
             return True
         except Exception as e:
@@ -149,12 +168,13 @@ async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
                     # if not await check_token(data['token'], factory_number):
                     #     await websocket.send('{"request": "ERROR", "message": "Invalid token"}')
                     #     continue
-
+                    
                     fisk = await insert_fiskalization(
                         pool,
                         factory_number,
                         data["sales"]["code"],
                         data["sales"]["cash"],
+                        data["sales"]["created_at"],
                     )
                     resp = '{"request": "OK"}' if fisk else '{"request": "ERROR"}'
                     await websocket.send(resp)
