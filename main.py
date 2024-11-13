@@ -68,9 +68,9 @@ async def insert_fiskalization(pool, factory_number, sales_code, sales_cash, cre
                 """
                 SELECT 1
                 FROM `fiskalization_table`
-                WHERE factory_number = %s 
-                    AND sales_code = %s
-                    AND date >= %s
+                WHERE `factory_number` = %s 
+                    AND `sales_code` = %s
+                    AND `date` >= %s
                 """,
                 (factory_number, sales_code, datetime.now(ZoneInfo("Europe/Kiev")) - timedelta(minutes=1))
             )
@@ -191,7 +191,40 @@ async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
 
     except websockets.exceptions.ConnectionClosedError:
         logger.info("Connection closed")
-
+        
+        
+async def device_ping_monitor(pool, ping_interval):
+    """
+    Monitors device connectivity using native WebSocket ping/pong frames.
+    """
+    
+    while True:
+        for fn, ws in connections.copy().items():
+            if ws.closed:
+                continue
+            
+            try:
+                pong_waiter = await ws.ping()
+                latency = await pong_waiter
+                logger.info(f"Pong recieved from {fn} device with {latency} latency")
+                
+                async with pool.acquire() as conn, conn.cursor() as cur:
+                    try:
+                        await cur.execute(
+                            """
+                            UPDATE `devices` 
+                            SET `last_online` = %s
+                            WHERE `factory_number` = %s
+                            """,
+                            (datetime.now(ZoneInfo("Europe/Kiev")), fn)
+                        )
+                    except Exception as e:
+                        logger.error(f"Error inserting device last online: {e.__class__.__name__}: {e}")
+                        continue
+            except Exception:
+                pass
+                
+        await asyncio.sleep(ping_interval)
 
 async def main():
     pool = await get_db_pool()
@@ -201,7 +234,11 @@ async def main():
         os.getenv("WS_PORT"),
     )
     logger.info("WebSocket server started on port 4715")
-    await asyncio.gather(server.wait_closed(), system_messages_handler(pool))
+    await asyncio.gather(
+        server.wait_closed(),
+        system_messages_handler(pool),
+        device_ping_monitor(pool, int(os.getenv("PING_INTERVAL", 90))),
+    )
 
 
 if __name__ == "__main__":
