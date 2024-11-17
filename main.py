@@ -12,6 +12,7 @@ import aiomysql
 import sentry_sdk
 import websockets
 from websockets import WebSocketServerProtocol
+from aiogram import Bot
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s"
@@ -37,7 +38,10 @@ DB_CONFIG = {
     "autocommit": True,
 }
 
-connections: dict[Any, WebSocketServerProtocol] = {}
+connections: dict[Any, WebSocketServerProtocol] = dict()
+offline_devices: dict[str, str] = dict()
+
+bot = Bot(os.getenv("BOT_TOKEN"))
 
 
 async def get_db_pool():
@@ -67,12 +71,12 @@ async def insert_fiskalization(pool, factory_number, sales_code, sales_cash, cre
             await cur.execute(
                 """
                 SELECT 1
-                FROM `fiskalization_table`
-                WHERE `factory_number` = %s 
-                    AND `sales_code` = %s
-                    AND `date` >= %s
+                FROM fiskalization_table
+                WHERE factory_number = %s 
+                    AND sales_code = %s
+                    AND date >= NOW() - INTERVAL 1 MINUTE
                 """,
-                (factory_number, sales_code, datetime.now(ZoneInfo("Europe/Kiev")) - timedelta(minutes=1))
+                (factory_number, sales_code),
             )
             exists = await cur.fetchone()
             if exists:
@@ -143,10 +147,23 @@ async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
         async for message in websocket:
             try:
                 data = json.loads(message)
+                
                 if data.get("command") == "hello":
                     factory_number = data["my_factory_number"]
                     connections[factory_number] = websocket
                     logger.info(f"Hello from {factory_number}")
+                    if factory_number in offline_devices:
+                        try:
+                            await bot.send_message(
+                                offline_devices[factory_number],
+                                f"Устройство {factory_number} возобновило соединение"
+                            )  
+                        except Exception:
+                            logger.error(
+                                f"Error while sending message about {factory_number} device"
+                            )
+                        offline_devices.pop(factory_number)
+                        
                 elif "payment" in data:
                     payment = "PAID" if "paid" in data["payment"] else data["payment"]
                     factory_number = data["factory_number"]
@@ -154,7 +171,7 @@ async def websocket_handler(websocket: WebSocketServerProtocol, path, pool):
 
                     async with pool.acquire() as conn, conn.cursor() as cur:
                         await cur.execute(
-                            "UPDATE `system_messages` SET `response` = %s WHERE `factory_number` = %s;",
+                            "UPDATE system_messages SET response = %s WHERE factory_number = %s",
                             (payment, factory_number),
                         )
                     await websocket.send('{"request": "OK"}')
@@ -212,11 +229,11 @@ async def device_ping_monitor(pool, ping_interval):
                     try:
                         await cur.execute(
                             """
-                            UPDATE `devices` 
-                            SET `last_online` = %s
-                            WHERE `factory_number` = %s
+                            UPDATE devices
+                            SET last_online = NOW()
+                            WHERE factory_number = %s
                             """,
-                            (datetime.now(ZoneInfo("Europe/Kiev")), fn)
+                            (fn,),
                         )
                     except Exception as e:
                         logger.error(f"Error inserting device last online: {e.__class__.__name__}: {e}")
@@ -225,6 +242,34 @@ async def device_ping_monitor(pool, ping_interval):
                 pass
                 
         await asyncio.sleep(ping_interval)
+        
+async def offline_deivces_monitor(pool, offlite_interval):
+    while True:
+        async with pool.acquire() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT 
+                    devices.factory_number, 
+                    users.telegram_token
+                FROM devices
+                JOIN users ON users.id = devices.user_id
+                WHERE devices.last_online < NOW() - INTERVAL 5 %s MINUTE;
+                """,
+                (offlite_interval,)
+            )
+            results = await cur.fetchall()
+        for result in results:
+            if not result[1]:
+                logger.warning(f"Chat wasn't found for device {result[0]}")
+            else:
+                await bot.send_message(
+                    result[1], f"Устройство {result[0]} не в сети более {offlite_interval} минут"
+                )
+                offline_devices[result[0]] = offline_devices[result[1]]
+                await asyncio.sleep(1)
+                
+        await asyncio.sleep(offlite_interval * 60)
+            
 
 async def main():
     pool = await get_db_pool()
@@ -238,6 +283,7 @@ async def main():
         server.wait_closed(),
         system_messages_handler(pool),
         device_ping_monitor(pool, int(os.getenv("PING_INTERVAL", 90))),
+        offline_deivces_monitor(pool, int(os.getenv("OFFLINE_INTERVAL", 5)))
     )
 
 
