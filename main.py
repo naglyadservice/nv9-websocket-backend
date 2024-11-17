@@ -243,7 +243,7 @@ async def device_ping_monitor(pool, ping_interval):
                 
         await asyncio.sleep(ping_interval)
         
-async def offline_deivces_monitor(pool, offlite_interval):
+async def offline_deivces_monitor(pool, offline_interval):
     while True:
         async with pool.acquire() as conn, conn.cursor() as cur:
             await cur.execute(
@@ -253,22 +253,25 @@ async def offline_deivces_monitor(pool, offlite_interval):
                     users.telegram_token
                 FROM devices
                 JOIN users ON users.id = devices.user_id
-                WHERE devices.last_online < NOW() - INTERVAL 5 %s MINUTE;
+                WHERE devices.last_online < NOW() - INTERVAL %s MINUTE;
                 """,
-                (offlite_interval,)
+                (offline_interval,)
             )
             results = await cur.fetchall()
         for result in results:
             if not result[1]:
                 logger.warning(f"Chat wasn't found for device {result[0]}")
+            elif result[0] in offline_devices:
+                continue
             else:
                 await bot.send_message(
-                    result[1], f"Устройство {result[0]} не в сети более {offlite_interval} минут"
+                    result[1], f"Устройство {result[0]} не в сети более {offline_interval} минут"
                 )
-                offline_devices[result[0]] = offline_devices[result[1]]
+                logger.info(f"Adding {result[0]} device to offline_devices")
+                offline_devices[result[0]] = result[1]
                 await asyncio.sleep(1)
                 
-        await asyncio.sleep(offlite_interval * 60)
+        await asyncio.sleep(offline_interval * 60)
             
 
 async def main():
@@ -283,7 +286,7 @@ async def main():
         server.wait_closed(),
         system_messages_handler(pool),
         device_ping_monitor(pool, int(os.getenv("PING_INTERVAL", 90))),
-        offline_deivces_monitor(pool, int(os.getenv("OFFLINE_INTERVAL", 5)))
+        offline_deivces_monitor(pool, int(os.getenv("OFFLINE_INTERVAL", 1)))
     )
 
 
