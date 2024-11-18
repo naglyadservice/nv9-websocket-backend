@@ -43,7 +43,7 @@ async def offline_deivces_monitor(
             else:
                 await bot_send_message(
                     chat,
-                    f"Устройство {device} не в сети более {offline_interval} минут",
+                    f"❌ Пристрій {device} зник з мережі більше {offline_interval} хвилин тому.",
                     device,
                 )
                 logger.info(f"Adding {device} device to offline_devices")

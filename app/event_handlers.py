@@ -21,7 +21,7 @@ async def handle_hello_msg(
     if factory_number in offline_devices:
         await bot_send_message(
             offline_devices[factory_number],
-            f"Устройство {factory_number} возобновило соединение",
+            f"✅ Пристрій {factory_number} знов у мережі.",
             factory_number,
         )
         offline_devices.pop(factory_number)
@@ -68,5 +68,5 @@ async def handle_input(data: dict, repository: Repository) -> None:
     if not chat:
         logger.warning(f"Telegram chat wasn't found for {factory_number} device")
 
-    state = "открыта" if data["input"] == "high" else "закрыта"
-    await bot_send_message(chat, f"Устройство {factory_number} дверь {state}")
+    state = "розімкнутий 🔓" if data["input"] == "high" else "замкнутий 🔒"
+    await bot_send_message(chat, f"Вхід пристрою:{factory_number} {state}")
