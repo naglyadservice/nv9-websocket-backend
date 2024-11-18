@@ -73,7 +73,8 @@ class Repository:
             await cur.execute(
                 """
                 SELECT 
-                    devices.factory_number, 
+                    devices.factory_number,
+                    devices.place_name,
                     users.telegram_token
                 FROM devices
                 JOIN users ON users.id = devices.user_id

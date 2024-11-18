@@ -35,7 +35,7 @@ async def offline_deivces_monitor(
         devices_and_chats = await repository.get_devices_with_offline_interval(
             offline_interval
         )
-        for device, chat in devices_and_chats:
+        for device, place, chat in devices_and_chats:
             if not chat:
                 logger.warning(f"Chat wasn't found for device {device}")
             elif device in offline_devices:
@@ -43,7 +43,7 @@ async def offline_deivces_monitor(
             else:
                 await bot_send_message(
                     chat,
-                    f"❌ Пристрій {device} зник з мережі більше {offline_interval} хвилин тому.",
+                    f"❌ Пристрій {device}{place} зник з мережі більше {offline_interval} хвилин тому.",
                     device,
                 )
                 logger.info(f"Adding {device} device to offline_devices")
