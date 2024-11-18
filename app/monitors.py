@@ -43,11 +43,11 @@ async def offline_deivces_monitor(
             else:
                 await bot_send_message(
                     chat,
-                    f"❌ Пристрій {device}{place} зник з мережі більше {offline_interval} хвилин тому.",
+                    f"Пристрій: {device}\nРозташування: {place}\n\nСтатус: зник з мережі більше {offline_interval} хвилин тому ❌",
                     device,
                 )
                 logger.info(f"Adding {device} device to offline_devices")
-                offline_devices[device] = chat
+                offline_devices[device] = (chat, place)
                 await asyncio.sleep(1)
 
         await asyncio.sleep(offline_interval * 60)

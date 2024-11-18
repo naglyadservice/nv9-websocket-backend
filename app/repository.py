@@ -100,11 +100,11 @@ class Repository:
                 (payment, factory_number),
             )
 
-    async def get_tg_chat_by_device(self, factory_number: str) -> tuple[str] | None:
+    async def get_device_chat_and_place(self, factory_number: str) -> tuple[str] | None:
         async with self.pool.acquire() as conn, conn.cursor() as cur:
             await cur.execute(
                 """
-                SELECT users.telegram_token
+                SELECT users.telegram_token, devices.place_name
                 FROM users
                 JOIN devices ON users.id = devices.user_id
                 WHERE devices.factory_number = %s

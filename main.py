@@ -31,7 +31,7 @@ sentry_sdk.init(
 )
 
 connections: dict[Any, WebSocketServerProtocol] = dict()
-offline_devices: dict[str, str] = dict()
+offline_devices: dict[str, tuple[str]] = dict()
 
 
 async def websocket_handler(
@@ -64,7 +64,9 @@ async def websocket_handler(
 
             else:
                 await websocket.send(
-                    json.dumps({"response": "ERROR", "message": "Invalid message contnet"})
+                    json.dumps(
+                        {"response": "ERROR", "message": "Invalid message contnet"}
+                    )
                 )
 
     except websockets.exceptions.ConnectionClosedOK:

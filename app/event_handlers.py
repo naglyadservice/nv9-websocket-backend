@@ -19,9 +19,10 @@ async def handle_hello_msg(
     connections[factory_number] = websocket
     logger.info(f"Hello from {factory_number}")
     if factory_number in offline_devices:
+        chat, place = offline_devices.get(factory_number)
         await bot_send_message(
-            offline_devices[factory_number],
-            f"✅ Пристрій {factory_number} знов у мережі.",
+            chat,
+            f"Пристрій: {factory_number}\nРозташування: {place}\n\nСтатус: у мережі ✅",
             factory_number,
         )
         offline_devices.pop(factory_number)
@@ -64,9 +65,11 @@ async def handle_fiscalization(
 
 async def handle_input(data: dict, repository: Repository) -> None:
     factory_number = data.get("factory_number")
-    chat = await repository.get_tg_chat_by_device(factory_number)
+    chat, place = await repository.get_device_chat_and_place(factory_number)
     if not chat:
         logger.warning(f"Telegram chat wasn't found for {factory_number} device")
 
     state = "розімкнутий 🔓" if data["input"] == "high" else "замкнутий 🔒"
-    await bot_send_message(chat, f"Вхід пристрою:{factory_number} {state}")
+    await bot_send_message(
+        chat, f"Пристрій :{factory_number}\nРозшташування: {place}\n\nСтатус: {state}"
+    )
