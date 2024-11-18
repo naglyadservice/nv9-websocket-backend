@@ -105,11 +105,12 @@ async def main():
             connections=connections,
             repository=repository,
             ping_interval=int(os.getenv("PING_INTERVAL", 90)),
+            offline_devices=offline_devices,
         ),
         offline_deivces_monitor(
             offline_devices=offline_devices,
             repository=repository,
-            offline_interval=int(os.getenv("OFFLINE_INTERVAL", 1)),
+            offline_interval=int(os.getenv("OFFLINE_INTERVAL_MINUTES", 5)),
         ),
     )
 

@@ -9,21 +9,29 @@ logger: Logger = getLogger("monitor")
 
 
 async def device_ping_monitor(
-    connections: dict, repository: Repository, ping_interval: int
+    connections: dict, repository: Repository, ping_interval: int, offline_devices: dict
 ) -> None:
     while True:
-        for fn, ws in connections.copy().items():
-            if ws.closed:
+        for factory_number, websocket in list(connections.items()):
+            if websocket.closed:
                 continue
 
             try:
-                pong_waiter = await ws.ping()
+                pong_waiter = await websocket.ping()
                 latency = await pong_waiter
-                logger.info(f"Pong recieved from {fn} device with {latency} latency")
-
-                await repository.update_device_last_online(fn)
+                logger.info(f"Pong recieved from {factory_number} device with {latency} latency")
+                await repository.update_device_last_online(factory_number)
             except Exception:
                 pass
+            else:    
+                if factory_number in offline_devices:
+                    chat, place = offline_devices.get(factory_number)
+                    await bot_send_message(
+                        chat,
+                        f"Пристрій: {factory_number}\nРозташування: {place}\n\nСтатус: у мережі ✅",
+                        factory_number,
+                    )
+                    offline_devices.pop(factory_number)
 
         await asyncio.sleep(ping_interval)
 

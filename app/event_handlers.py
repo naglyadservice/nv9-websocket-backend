@@ -18,14 +18,6 @@ async def handle_hello_msg(
     factory_number = data["my_factory_number"]
     connections[factory_number] = websocket
     logger.info(f"Hello from {factory_number}")
-    if factory_number in offline_devices:
-        chat, place = offline_devices.get(factory_number)
-        await bot_send_message(
-            chat,
-            f"Пристрій: {factory_number}\nРозташування: {place}\n\nСтатус: у мережі ✅",
-            factory_number,
-        )
-        offline_devices.pop(factory_number)
 
 
 async def handle_payment(
