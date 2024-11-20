@@ -1,3 +1,4 @@
+import asyncio
 import json
 from logging import Logger, getLogger
 import websockets
@@ -65,3 +66,5 @@ async def handle_input(data: dict, repository: Repository) -> None:
     await bot_send_message(
         chat, f"Пристрій :{factory_number}\nРозшташування: {place}\n\nСтатус: {state}"
     )
+    await asyncio.sleep(2)
+

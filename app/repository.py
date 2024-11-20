@@ -75,6 +75,7 @@ class Repository:
                 SELECT 
                     devices.factory_number,
                     devices.place_name,
+                    devices.last_online,
                     users.telegram_token
                 FROM devices
                 JOIN users ON users.id = devices.user_id

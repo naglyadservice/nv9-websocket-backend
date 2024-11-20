@@ -32,6 +32,7 @@ async def device_ping_monitor(
                         factory_number,
                     )
                     offline_devices.pop(factory_number)
+                    await asyncio.sleep(2)
 
         await asyncio.sleep(ping_interval)
 
@@ -43,7 +44,7 @@ async def offline_deivces_monitor(
         devices_and_chats = await repository.get_devices_with_offline_interval(
             offline_interval
         )
-        for device, place, chat in devices_and_chats:
+        for device, place, last_online, chat in devices_and_chats:
             if not chat:
                 logger.warning(f"Chat wasn't found for device {device}")
             elif device in offline_devices:
@@ -51,11 +52,11 @@ async def offline_deivces_monitor(
             else:
                 await bot_send_message(
                     chat,
-                    f"Пристрій: {device}\nРозташування: {place}\n\nСтатус: зник з мережі більше {offline_interval} хвилин тому ❌",
+                    f"Пристрій: {device}\nРозташування: {place}\n\nСтатус: зник з мережі в {last_online} ❌",
                     device,
                 )
                 logger.info(f"Adding {device} device to offline_devices")
                 offline_devices[device] = (chat, place)
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
 
-        await asyncio.sleep(offline_interval * 60)
+        await asyncio.sleep(120)

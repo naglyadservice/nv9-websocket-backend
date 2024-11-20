@@ -1,19 +1,25 @@
 version: "3.11"
-
 services:
-   app:
-      build:
-         context: .
-         target: app
+  app:
+    build:
+      context: .
+      target: app
+    restart: always
+    env_file: .env
+    environment:
+      - WS_HOST=0.0.0.0
+    ports:
+      - "${WS_PORT}:${WS_PORT}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      nv9_network:
+        ipv4_address: 172.18.0.2
 
-      restart: always
-      env_file: .env
-
-      environment:
-         - WS_HOST=0.0.0.0
-
-      ports:
-         - "${WS_PORT}:${WS_PORT}"
-
-      extra_hosts:
-         - "host.docker.internal:host-gateway"
+networks:
+  nv9_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/16
