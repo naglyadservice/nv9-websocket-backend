@@ -23,8 +23,8 @@ async def handle_hello_msg(
 async def handle_payment(
     data: dict, repository: Repository, websocket: websockets.WebSocketServerProtocol
 ) -> None:
+    payment = "PAID" if "paid" in data["payment"] else data["payment"]
     factory_number = data["factory_number"]
-    payment = data["payment"]
     logger.info(f"Payment for {factory_number} is {payment}")
 
     await repository.update_system_message_response(payment, factory_number)
