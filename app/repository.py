@@ -30,7 +30,7 @@ class Repository:
         self,
         factory_number: str,
         sales_code: str,
-        sales_cache: str,
+        sales_cash: str,
         created_at: datetime,
     ) -> bool:
         try:
@@ -40,7 +40,7 @@ class Repository:
                     INSERT INTO fiskalization_table (factory_number, sales_code, sales_cashe, date_msg)
                     VALUES (%s, %s, %s, %s)
                     """,
-                    (factory_number, sales_code, sales_cache, created_at),
+                    (factory_number, sales_code, sales_cash, created_at),
                 )
         except Exception as e:
             self.logger.error(

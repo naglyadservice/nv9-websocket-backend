@@ -45,15 +45,24 @@ async def handle_fiscalization(
             json.dumps({"request": "ERROR", "message": "Duplicated fiscalization"})
         )
     else:
-        if await repository.add_fiscalization(
-            factory_number,
-            data["sales"]["code"],
-            data["sales"]["cash"],
-            data["sales"]["created_at"],
-        ):
-            await websocket.send(json.dumps({"request": "OK"}))
-        else:
-            await websocket.send(json.dumps({"request": "ERROR"}))
+        cash = data["sales"]["cash"]
+        payment_type = data.get("payment_type") or data["sales"].get("payment_type")
+        
+        if payment_type == "liqpay":
+            cash = 0
+        elif payment_type == "cash":
+            cash = 1
+        elif payment_type == "paypass":
+            cash = 2
+                
+        success = await repository.add_fiscalization(
+            factory_number=factory_number,
+            sales_code=data["sales"]["code"],
+            sales_cash=cash,
+            created_at=data["sales"]["created_at"],
+        )
+        message = {"request": "OK"} if success else {"request": "ERROR"}
+        await websocket.send(json.dumps(message))
 
 
 async def handle_input(data: dict, repository: Repository) -> None:
