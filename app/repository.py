@@ -15,7 +15,7 @@ class Repository:
                 SELECT 1
                 FROM devices
                 WHERE factory_number = %s
-                """
+                """,
                 (factory_number,)
             )
             if await cur.fetchone():
