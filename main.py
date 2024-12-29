@@ -49,7 +49,6 @@ async def websocket_handler(
                     data=data,
                     connections=connections,
                     websocket=websocket,
-                    offline_devices=offline_devices,
                 )
             elif "payment" in data:
                 await handle_payment(
@@ -65,7 +64,7 @@ async def websocket_handler(
             else:
                 await websocket.send(
                     json.dumps(
-                        {"response": "ERROR", "message": "Invalid message contnet"}
+                        {"request": "ERROR", "message": "Invalid message contnet"}
                     )
                 )
 

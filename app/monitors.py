@@ -45,9 +45,7 @@ async def offline_deivces_monitor(
             offline_interval
         )
         for device, place, last_online, chat in devices_and_chats:
-            if not chat:
-                logger.warning(f"Chat wasn't found for device {device}")
-            elif device in offline_devices:
+            if device in offline_devices or not chat:
                 continue
             else:
                 await bot_send_message(

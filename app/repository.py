@@ -8,6 +8,34 @@ class Repository:
         self.logger: Logger = getLogger("repository")
         self.pool = pool
 
+    async def check_device_with_fn(self, factory_number: str) -> bool:
+        async with self.pool.acquire() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT 1
+                FROM devices
+                WHERE factory_number = %s
+                """
+                (factory_number,)
+            )
+            if await cur.fetchone():
+                return True
+            return False
+        
+    async def check_serial_number(self, factory_number: str) -> bool:
+        async with self.pool.acquire() as conn, conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT 1
+                FROM device_serial_numbers
+                WHERE serial_number = %s
+                """,
+                (factory_number,)
+            )
+            if await cur.fetchone():
+                return True
+            return False
+        
     async def check_recent_fiscalization(
         self, factory_number: str, sales_code: str, interval: int
     ) -> bool:
