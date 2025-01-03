@@ -40,7 +40,6 @@ async def handle_fiscalization(
     factory_number = data["factory_number"]
     sales_cash = data["sales"]["cash"]
     payment_type = data["sales"].get("payment_type")
-    cash = 1
     if not await repository.check_device_with_fn(factory_number):
         if not await repository.check_serial_number(factory_number) or payment_type != "paypass":
             await websocket.send(error_msg)
@@ -61,6 +60,8 @@ async def handle_fiscalization(
         cash = 1
     elif payment_type == "paypass":
         cash = 2
+    else:
+        cash = 1
             
     success = await repository.add_fiscalization(
         factory_number=factory_number,
