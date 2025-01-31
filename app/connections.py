@@ -11,6 +11,10 @@ logger: Logger = getLogger("connections")
 
 async def connections_handler(connections: dict, repository: Repository) -> None:
     while True:
+        
+        # Логируем количество подключенных устройств
+        logger.info(f"Currently connected devices: {len(connections)}")
+    
         for factory_number, websocket in list(connections.items()):
             if websocket.closed:
                 try:
