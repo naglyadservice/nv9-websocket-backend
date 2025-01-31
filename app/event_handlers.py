@@ -2,6 +2,8 @@ import asyncio
 import json
 from logging import Logger, getLogger
 import websockets
+import pytz
+from datetime import datetime, time
 
 from app.bot import bot_send_message
 from app.repository import Repository
@@ -43,7 +45,27 @@ async def handle_fiscalization(
     # Логируем входящие данные
     logger.info(f"Received fiscalization request: {data}")
 
-    # Используем "paypass", если он есть и больше 0, иначе "cash"
+    # Получаем текущее время по Киеву
+    kiev_tz = pytz.timezone('Europe/Kiev')
+    now_kiev = datetime.now(kiev_tz).time()
+
+    # Проверяем, попадает ли время в интервал с 23:40 до 00:05
+    start_time = time(23, 40)
+    end_time = time(0, 5)
+
+    if start_time <= now_kiev <= end_time:
+        logger.info(f"Transaction from {now_kiev} received during restricted period. Marked as fiscalized.")
+        
+        # Помечаем транзакцию как фискализированную, но не выполняем фискализацию
+        success = await repository.mark_as_fiscalized(factory_number, sales["code"])
+        if success:
+            logger.info(f"Transaction marked as fiscalized for factory_number={factory_number}, sales_code={sales['code']}")
+            await websocket.send(success_msg)
+        else:
+            await websocket.send(error_msg)
+        return
+
+    # Логика для обычной фискализации
     if sales.get("paypass", 0) > 0:
         sales_cash = sales["paypass"]
         cash = 2

@@ -13,6 +13,7 @@ python-dotenv = "^1.0.1"
 sentry-sdk = "^2.7.1"
 cryptography = "^43.0.3"
 aiogram = "^3.14.0"
+pytz = "^2025.1"
 
 
 [build-system]

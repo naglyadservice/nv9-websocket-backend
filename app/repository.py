@@ -142,3 +142,27 @@ class Repository:
                 (factory_number,),
             )
             return await cur.fetchone()
+    
+    async def mark_as_fiscalized(self, factory_number: str, sales_code: str) -> bool:
+        try:
+            # Выполняем запрос для обновления столбца fiscalized в таблице fiskalization_table
+            async with self.pool.acquire() as conn, conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    UPDATE fiskalization_table
+                    SET fiscalized = 1
+                    WHERE factory_number = %s AND sales_code = %s
+                    """,
+                    (factory_number, sales_code)
+                )
+                
+                # Проверяем, что транзакция была обновлена
+                if cur.rowcount > 0:
+                    self.logger.info(f"Transaction marked as fiscalized for factory_number={factory_number}, sales_code={sales_code}")
+                    return True
+                else:
+                    self.logger.warning(f"No transaction found for factory_number={factory_number}, sales_code={sales_code}")
+                    return False
+        except Exception as e:
+            self.logger.error(f"Error marking transaction as fiscalized: {e.__class__.__name__}: {e}")
+            return False
